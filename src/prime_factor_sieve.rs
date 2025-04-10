@@ -21,6 +21,16 @@ impl PrimeFactorSieve {
     Self { smallest_prime_factors: v }
   }
 
+  /// Returns an iterator over all primes.
+  pub fn primes(&self) -> impl Iterator<Item = u32> {
+    self
+      .smallest_prime_factors
+      .iter()
+      .enumerate()
+      .skip(2)
+      .filter_map(|(p, &spf)| (spf == p as u32).then_some(p as u32))
+  }
+
   /// Returns an iterator over prime factors (p, multiplicity).
   pub fn prime_factors(&self, n: u32) -> impl Iterator<Item = (u32, u32)> {
     let mut n = n as usize;
@@ -48,6 +58,18 @@ mod tests {
   use itertools::Itertools;
 
   use super::PrimeFactorSieve;
+
+  #[test]
+  fn test_primes() {
+    let sieve = PrimeFactorSieve::new(100);
+    assert_eq!(
+      sieve.primes().collect_vec(),
+      vec![
+        2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89,
+        97
+      ]
+    );
+  }
 
   #[test]
   fn test_2() {
