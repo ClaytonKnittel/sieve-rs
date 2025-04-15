@@ -21,6 +21,11 @@ impl PrimeFactorSieve {
     Self { smallest_prime_factors: v }
   }
 
+  pub fn is_prime(&self, n: u32) -> bool {
+    debug_assert!(n >= 2);
+    self.smallest_prime_factors[n as usize] == n
+  }
+
   /// Returns an iterator over all primes.
   pub fn primes(&self) -> impl Iterator<Item = u32> {
     self
@@ -69,6 +74,20 @@ mod tests {
         97
       ]
     );
+  }
+
+  #[test]
+  fn test_is_prime() {
+    let sieve = PrimeFactorSieve::new(10);
+    assert!(sieve.is_prime(2));
+    assert!(sieve.is_prime(3));
+    assert!(!sieve.is_prime(4));
+    assert!(sieve.is_prime(5));
+    assert!(!sieve.is_prime(6));
+    assert!(sieve.is_prime(7));
+    assert!(!sieve.is_prime(8));
+    assert!(!sieve.is_prime(9));
+    assert!(!sieve.is_prime(10));
   }
 
   #[test]
