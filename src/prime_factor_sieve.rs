@@ -66,12 +66,13 @@ impl PrimeFactorSieve {
   ) -> impl Iterator<Item = u32> {
     match prime_factors.next() {
       Some((p, m)) => Either::Left(
-        std::iter::successors(Some(1), move |n| Some(n * p))
-          .take(m as usize + 1)
-          .flat_map(move |p| {
-            Box::new(self.factors_generator(p * multiplier, prime_factors.clone()))
-              as Box<dyn Iterator<Item = u32>>
-          }),
+        std::iter::successors(Some((1, 0)), move |&(n, pow)| {
+          (pow < m).then(|| (n * p, pow + 1))
+        })
+        .flat_map(move |(p, _)| {
+          Box::new(self.factors_generator(p * multiplier, prime_factors.clone()))
+            as Box<dyn Iterator<Item = u32>>
+        }),
       ),
       None => Either::Right(std::iter::once(multiplier)),
     }
@@ -150,6 +151,28 @@ mod tests {
     assert_that!(
       sieve.factors(24).collect_vec(),
       unordered_elements_are![&1, &2, &3, &4, &6, &8, &12, &24]
+    );
+  }
+
+  #[test]
+  fn test_large_factor() {
+    let sieve = PrimeFactorSieve::new(100_000_000);
+
+    assert_that!(
+      sieve.factors(131266).collect_vec(),
+      unordered_elements_are![&1, &2, &65633, &131266]
+    );
+    assert_that!(
+      sieve.factors(100_000_000).collect_vec(),
+      unordered_elements_are![
+        &1, &5, &25, &125, &625, &3125, &15625, &78125, &390625, &2, &10, &50, &250, &1250, &6250,
+        &31250, &156250, &781250, &4, &20, &100, &500, &2500, &12500, &62500, &312500, &1562500,
+        &8, &40, &200, &1000, &5000, &25000, &125000, &625000, &3125000, &16, &80, &400, &2000,
+        &10000, &50000, &250000, &1250000, &6250000, &32, &160, &800, &4000, &20000, &100000,
+        &500000, &2500000, &12500000, &64, &320, &1600, &8000, &40000, &200000, &1000000, &5000000,
+        &25000000, &128, &640, &3200, &16000, &80000, &400000, &2000000, &10000000, &50000000,
+        &256, &1280, &6400, &32000, &160000, &800000, &4000000, &20000000, &100000000,
+      ]
     );
   }
 }
