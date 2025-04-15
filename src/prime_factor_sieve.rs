@@ -1,3 +1,5 @@
+use either::Either;
+
 pub struct PrimeFactorSieve {
   smallest_prime_factors: Vec<u32>,
 }
@@ -37,7 +39,7 @@ impl PrimeFactorSieve {
   }
 
   /// Returns an iterator over prime factors (p, multiplicity).
-  pub fn prime_factors(&self, n: u32) -> impl Iterator<Item = (u32, u32)> {
+  pub fn prime_factors(&self, n: u32) -> impl Iterator<Item = (u32, u32)> + Clone {
     let mut n = n as usize;
     debug_assert_ne!(n, 0);
     debug_assert!(n <= self.smallest_prime_factors.len());
@@ -56,10 +58,33 @@ impl PrimeFactorSieve {
       })
     })
   }
+
+  fn factors_generator<'a>(
+    &'a self,
+    multiplier: u32,
+    mut prime_factors: impl Iterator<Item = (u32, u32)> + Clone + 'a,
+  ) -> impl Iterator<Item = u32> {
+    match prime_factors.next() {
+      Some((p, m)) => Either::Left(
+        std::iter::successors(Some(1), move |n| Some(n * p))
+          .take(m as usize + 1)
+          .flat_map(move |p| {
+            Box::new(self.factors_generator(p * multiplier, prime_factors.clone()))
+              as Box<dyn Iterator<Item = u32>>
+          }),
+      ),
+      None => Either::Right(std::iter::once(multiplier)),
+    }
+  }
+
+  pub fn factors(&self, n: u32) -> impl Iterator<Item = u32> {
+    self.factors_generator(1, self.prime_factors(n))
+  }
 }
 
 #[cfg(test)]
 mod tests {
+  use googletest::{assert_that, prelude::unordered_elements_are};
   use itertools::Itertools;
 
   use super::PrimeFactorSieve;
@@ -108,5 +133,23 @@ mod tests {
     assert_eq!(sieve.prime_factors(8).collect_vec(), vec![(2, 3)]);
     assert_eq!(sieve.prime_factors(9).collect_vec(), vec![(3, 2)]);
     assert_eq!(sieve.prime_factors(10).collect_vec(), vec![(2, 1), (5, 1)]);
+  }
+
+  #[test]
+  fn test_factors() {
+    let sieve = PrimeFactorSieve::new(30);
+
+    assert_that!(
+      sieve.factors(10).collect_vec(),
+      unordered_elements_are![&1, &2, &5, &10]
+    );
+    assert_that!(
+      sieve.factors(13).collect_vec(),
+      unordered_elements_are![&1, &13]
+    );
+    assert_that!(
+      sieve.factors(24).collect_vec(),
+      unordered_elements_are![&1, &2, &3, &4, &6, &8, &12, &24]
+    );
   }
 }
