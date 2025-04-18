@@ -59,6 +59,11 @@ impl PrimeFactorSieve {
     })
   }
 
+  /// Returns the number of factors this number has.
+  pub fn factors_count(&self, n: u32) -> u32 {
+    self.prime_factors(n).map(|(_, pow)| pow + 1).product()
+  }
+
   fn factors_generator<'a>(
     &'a self,
     multiplier: u32,
@@ -174,5 +179,13 @@ mod tests {
         &256, &1280, &6400, &32000, &160000, &800000, &4000000, &20000000, &100000000,
       ]
     );
+  }
+
+  #[test]
+  fn test_factors_count() {
+    let sieve = PrimeFactorSieve::new(100);
+    for n in 1..=100 {
+      assert_eq!(sieve.factors_count(n), sieve.factors(n).count() as u32);
+    }
   }
 }
