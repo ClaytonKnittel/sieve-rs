@@ -107,6 +107,13 @@ impl PrimeFactorSieve {
 
     true
   }
+
+  pub fn totient(&self, n: u32) -> u32 {
+    let (n, q) = self
+      .prime_factors(n)
+      .fold((n, 1), |(n, q), (p, _)| (n / p, q * (p - 1)));
+    n * q
+  }
 }
 
 #[cfg(test)]
@@ -221,6 +228,15 @@ mod tests {
         let coprime = !sieve.prime_factors(b).any(|(p, _)| ap.contains(&p));
         assert_eq!(sieve.coprime(a, b), coprime);
       }
+    }
+  }
+
+  #[test]
+  fn test_totient() {
+    let sieve = PrimeFactorSieve::new(100);
+    for a in 1..=100 {
+      let coprime_count = (1..=a).filter(|&n| sieve.coprime(a, n)).count() as u32;
+      assert_eq!(sieve.totient(a), coprime_count);
     }
   }
 }
