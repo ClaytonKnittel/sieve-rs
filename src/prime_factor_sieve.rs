@@ -86,10 +86,33 @@ impl PrimeFactorSieve {
   pub fn factors(&self, n: u32) -> impl Iterator<Item = u32> {
     self.factors_generator(1, self.prime_factors(n))
   }
+
+  pub fn coprime(&self, a: u32, b: u32) -> bool {
+    let mut a_i = self.prime_factors(a);
+    let mut b_i = self.prime_factors(b);
+    let mut ps = a_i
+      .next()
+      .map(|(ap, _)| b_i.next().map(|(bp, _)| (ap, bp)))
+      .flatten();
+
+    while let Some((ap, bp)) = ps {
+      if ap == bp {
+        return false;
+      } else if ap < bp {
+        ps = a_i.next().map(|(ap, _)| (ap, bp));
+      } else {
+        ps = b_i.next().map(|(bp, _)| (ap, bp));
+      }
+    }
+
+    true
+  }
 }
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashSet;
+
   use googletest::{assert_that, prelude::unordered_elements_are};
   use itertools::Itertools;
 
@@ -186,6 +209,18 @@ mod tests {
     let sieve = PrimeFactorSieve::new(100);
     for n in 1..=100 {
       assert_eq!(sieve.factors_count(n), sieve.factors(n).count() as u32);
+    }
+  }
+
+  #[test]
+  fn test_coprime() {
+    let sieve = PrimeFactorSieve::new(100);
+    for a in 1..=100 {
+      let ap: HashSet<_> = sieve.prime_factors(a).map(|(p, _)| p).collect();
+      for b in 1..=100 {
+        let coprime = !sieve.prime_factors(b).any(|(p, _)| ap.contains(&p));
+        assert_eq!(sieve.coprime(a, b), coprime);
+      }
     }
   }
 }
